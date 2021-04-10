@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 opc
+ * Copyright (C) 2021 davidmercado
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,31 +16,25 @@
  */
 package labs.pm.data;
 
-import java.math.BigDecimal;
-import java.time.LocalTime;
-
 /**
  *
- * @author opc
+ * @author davidmercado
  */
-public final class Drink extends Product {
+public class ProductManagerException extends Exception{
 
-     Drink(int id, String name, BigDecimal price, Rating rating) {
-        super(id, name, price, rating);
+    public ProductManagerException() {
+        super();
     }
 
-    @Override
-    public BigDecimal getDiscount() {
-        LocalTime now=LocalTime.now();
-        
-        return (now.isAfter(LocalTime.of(17, 30)) && 
-                now.isBefore(LocalTime.of(22, 30)))
-                ?super.getDiscount():BigDecimal.ZERO; //To change body of generated methods, choose Tools | Templates.
+    public ProductManagerException(String message) {
+        super(message);
     }
 
-    @Override
-    public Product applyRating(Rating newRating) {
-            return new Drink(getId(), getName(), getPrice(), newRating);
+    public ProductManagerException(String message, Throwable cause) {
+        super(message, cause);
     }
+    
+    
+    
     
 }
