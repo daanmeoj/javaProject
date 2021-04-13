@@ -1,0 +1,4 @@
+Coffe, price:£50.99, Rating ★★★☆☆, Best before : 12/04/2021
+Review: ★★★★☆	bad service
+Review: ★★★☆☆	it is expensive
+Review: ★★☆☆☆	the coffe is too light
