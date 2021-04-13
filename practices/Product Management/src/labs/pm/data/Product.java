@@ -44,9 +44,6 @@ public abstract class Product implements Rateable<Product>,Serializable {
     
 
 
-//    Product() {
-//        this(0, "no name", BigDecimal.ZERO);
-//    }
 
     Product(int id, String name, BigDecimal price, Rating rating) {
         this.id = id;
@@ -73,24 +70,17 @@ public abstract class Product implements Rateable<Product>,Serializable {
         return id;
     }
 
-//    public void setId(final int id) {
-//        this.id = id;
-//    }
+
     public String getName() {
         return name;
     }
 
-//    public void setName(String name) {
-//        this.name = name;
-//    }
+
     public BigDecimal getPrice() {
         return price;
     }
 
-//    public void setPrice(final BigDecimal price) {
-//
-//        this.price = price;
-//    }
+
     /**
      * calculates discount based on a product price and
      * {@link DISCOUNT_RATE discount rate}
@@ -106,9 +96,6 @@ public abstract class Product implements Rateable<Product>,Serializable {
         return rating;
     }
 
-    //public abstract Product applyRating(Rating newRating); //{
-//        return new Product(this.id, this.name, this.price, newRating);
-//    }
 
     @Override
     public String toString() {
@@ -128,7 +115,7 @@ public abstract class Product implements Rateable<Product>,Serializable {
             return true;
         }
 
-//        if(obj!=null && getClass()==obj.getClass()){
+
         if (obj instanceof Product) {
             final Product other = (Product) obj;
             return this.id == other.id; //&& Objects.equals(this.name, other.name);
