@@ -43,6 +43,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -55,17 +57,17 @@ import java.util.stream.Collectors;
 public class ProductManager {
 
     private Map<Product, List<Review>> products = new HashMap<>();
-    private ResourceFormatter formatter;
-    private ResourceBundle config = ResourceBundle.getBundle("labs.pm.data.config");
-    private MessageFormat reviewFormat = new MessageFormat(config.getString("review.data.format"));
-    private MessageFormat productFormat = new MessageFormat(config.getString("product.data.format"));
-    private Path reportsFolder
+//    private ResourceFormatter formatter;
+    private final ResourceBundle config = ResourceBundle.getBundle("labs.pm.data.config");
+    private final MessageFormat reviewFormat = new MessageFormat(config.getString("review.data.format"));
+    private final MessageFormat productFormat = new MessageFormat(config.getString("product.data.format"));
+    private final Path reportsFolder
             = Path.of(config.getString("reports.folder"));
-    private Path dataFolder
+    private final Path dataFolder
             = Path.of(config.getString("data.folder"));
-    private Path tempFolder
+    private final Path tempFolder
             = Path.of(config.getString("temp.folder"));
-    private static Map<String, ResourceFormatter> formatters
+    private static final Map<String, ResourceFormatter> formatters
             = Map.of("en-GB", new ResourceFormatter(Locale.UK),
                     "en-US", new ResourceFormatter(Locale.US),
                     "fr-FR", new ResourceFormatter(Locale.FRANCE),
@@ -75,58 +77,90 @@ public class ProductManager {
             );
 
     private static final Logger logger = Logger.getLogger(ProductManager.class.getName());
+    private static final ProductManager pm = new ProductManager();
+    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    private final Lock writeLock = lock.writeLock();
+    private final Lock readLock = lock.readLock();
+
+    public static ProductManager getInstance() {
+        return pm;
+    }
 
     public Product findProduct(int id) throws ProductManagerException {
-
-        return products.keySet()
-                .stream()
-                .filter(p -> p.getId() == id)
-                .findFirst()
-                .orElseThrow(()
-                        -> new ProductManagerException("Product with id: " + id + "not found"));
+        try {
+            readLock.lock();
+            return products.keySet()
+                    .stream()
+                    .filter(p -> p.getId() == id)
+                    .findFirst()
+                    .orElseThrow(()
+                            -> new ProductManagerException("Product with id: " + id + "not found"));
+        } finally {
+            readLock.unlock();
+        }
     }
 
-    public ProductManager(Locale locale) {
-        this(locale.toLanguageTag());
-    }
-
-    public ProductManager(String languageTag) {
-        changeLocale(languageTag);
+//    public ProductManager(Locale locale) {
+//        this(locale.toLanguageTag());
+//    }
+    private ProductManager() {
+        //changeLocale(languageTag);
         loadAllData();
     }
 
-    public void changeLocale(String languageTag) {
-        formatter = formatters.getOrDefault(languageTag, formatters.get("en-GB"));
-    }
-
+//    public void changeLocale(String languageTag) {
+//        formatter = formatters.getOrDefault(languageTag, formatters.get("en-GB"));
+//    }
     public static Set<String> getSupportedLocales() {
         return formatters.keySet();
     }
 
     public Product CreateProduct(int id, String name, BigDecimal price,
             Rating rating, LocalDate bestBefore) {
-        Product product = new Food(id, name, price, rating, bestBefore);
-        products.putIfAbsent(product, new ArrayList<>());
+        Product product = null;
+        try {
+            writeLock.lock();
+            product = new Food(id, name, price, rating, bestBefore);
+            products.putIfAbsent(product, new ArrayList<>());
+        } catch (Exception ex) {
+            logger.log(Level.INFO, "Error adding product " + ex.getMessage());
+            return null;
+        } finally {
+            writeLock.unlock();
+        }
         return product;
     }
 
     public Product CreateProduct(int id, String name, BigDecimal price,
             Rating rating) {
-        Product product = new Drink(id, name, price, rating);
-        products.putIfAbsent(product, new ArrayList<>());
+        Product product = null;
+        try {
+            writeLock.lock();
+            product = new Drink(id, name, price, rating);
+            products.putIfAbsent(product, new ArrayList<>());
+
+        } catch (Exception ex) {
+            logger.log(Level.INFO, "Error adding product " + ex.getMessage());
+            return null;
+        } finally {
+            writeLock.unlock();
+        }
         return product;
     }
 
     public Product reviewProduct(int id, Rating rating, String comments) {
         try {
+            writeLock.lock();
             return reviewProduct(findProduct(id), rating, comments);
         } catch (ProductManagerException ex) {
             logger.log(Level.INFO, ex.getMessage());
+        } finally {
+            writeLock.unlock();
         }
         return null;
     }
 
-    public Product reviewProduct(Product product, Rating rating, String comments) {
+    private Product reviewProduct(Product product, Rating rating, String comments) {
 
         List<Review> reviews = products.get(product);
         products.remove(product, reviews);
@@ -145,23 +179,27 @@ public class ProductManager {
         return product;
     }
 
-    public void PrintProductReport(int id) {
+    public void PrintProductReport(int id, String languageTag, String client) {
         try {
-            PrintProductReport(findProduct(id));
+            readLock.lock();
+            PrintProductReport(findProduct(id), languageTag, client);
         } catch (ProductManagerException ex) {
             logger.log(Level.INFO, ex.getMessage());
         } catch (IOException ex) {
             logger.log(Level.SEVERE, "Error printing product report " + ex.getMessage(), ex);
+        } finally {
+            readLock.unlock();
         }
     }
 
-    public void PrintProductReport(Product product) throws IOException {
+    private void PrintProductReport(Product product, String languageTag, String client) throws IOException {
+        ResourceFormatter formatter = formatters.getOrDefault(languageTag, formatters.get("en-GB"));
         List<Review> reviews = products.get(product);
         Collections.sort(reviews);
 
         Path productFile = reportsFolder.resolve(
                 MessageFormat.format(
-                        config.getString("report.file"), product.getId())
+                        config.getString("report.file"), product.getId(), client)
         );
         try (PrintWriter out = new PrintWriter(
                 new OutputStreamWriter(
@@ -181,18 +219,23 @@ public class ProductManager {
 
     }
 
-    public void printproducts(Predicate<Product> filter, Comparator<Product> sorter) {
-//        List<Product> productList = new ArrayList<>(products.keySet());
-//        productList.sort(sorter);
-        StringBuilder txt = new StringBuilder();
+    public void printproducts(Predicate<Product> filter, Comparator<Product> sorter, String languageTag) {
 
-        products.keySet()
-                .stream()
-                .sorted(sorter)
-                .filter(filter)
-                .forEach(p -> txt.append(formatter.formatProduct(p) + "\n"));
+        try {
+            readLock.lock();
+            ResourceFormatter formatter = formatters.getOrDefault(languageTag, formatters.get("en-GB"));
+            StringBuilder txt = new StringBuilder();
 
-        System.out.println(txt);
+            products.keySet()
+                    .stream()
+                    .sorted(sorter)
+                    .filter(filter)
+                    .forEach(p -> txt.append(formatter.formatProduct(p) + "\n"));
+
+            System.out.println(txt);
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -204,7 +247,7 @@ public class ProductManager {
             try (ObjectInputStream in = new ObjectInputStream(
                     Files.newInputStream(tempFile, StandardOpenOption.DELETE_ON_CLOSE)
             )) {
-                products =  (HashMap)in.readObject();
+                products = (HashMap) in.readObject();
             }
         } catch (Exception ex) {
             logger.log(Level.SEVERE, "Error restoring data " + ex.getMessage(), ex);
@@ -222,7 +265,7 @@ public class ProductManager {
                     Files.newOutputStream(temFile, StandardOpenOption.CREATE)
             )) {
                 out.writeObject(products);
-                products = new HashMap<>();
+                //products = new HashMap<>();
             }
         } catch (IOException ex) {
             logger.log(Level.SEVERE, "Error dumping data " + ex.getMessage(), ex);
@@ -310,16 +353,22 @@ public class ProductManager {
         return product;
     }
 
-    public Map<String, String> getDiscounts() {
-        return products.keySet()
-                .stream()
-                .collect(
-                        Collectors.groupingBy(
-                                product -> product.getRating().getStarts(),
-                                Collectors.collectingAndThen(
-                                        Collectors.summingDouble(
-                                                product -> product.getDiscount().doubleValue()),
-                                        discount -> formatter.moneyFormat.format(discount))));
+    public Map<String, String> getDiscounts(String languageTag) {
+        try {
+            readLock.lock();
+            ResourceFormatter formatter = formatters.getOrDefault(languageTag, formatters.get("en-GB"));
+            return products.keySet()
+                    .stream()
+                    .collect(
+                            Collectors.groupingBy(
+                                    product -> product.getRating().getStarts(),
+                                    Collectors.collectingAndThen(
+                                            Collectors.summingDouble(
+                                                    product -> product.getDiscount().doubleValue()),
+                                            discount -> formatter.moneyFormat.format(discount))));
+        } finally {
+            readLock.unlock();
+        }
 
     }
 

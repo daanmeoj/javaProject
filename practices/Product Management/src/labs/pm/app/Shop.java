@@ -29,15 +29,15 @@ public class Shop {
      */
     public static void main(String[] args) {
         // TODO code application logic here
-        ProductManager pm = new ProductManager("en-GB");
-        //pm.PrintProductReport(101);
+        ProductManager pm =ProductManager.getInstance();//new ProductManager();
+        pm.PrintProductReport(101,"en-GB");
 //        pm.CreateProduct(102, "Coffe", BigDecimal.valueOf(50.99), Rating.FOUR_STAR);
 //        pm.reviewProduct(102, Rating.FOUR_STAR, "bad service");
 //        pm.reviewProduct(102, Rating.TWO_STAR, "the coffe is too light");
 //        pm.reviewProduct(102, Rating.THREE_STAR, "it is expensive");
 //        //pm.dumpData();
 //        //pm.restoreData();
-//        pm.PrintProductReport(103);
+        pm.PrintProductReport(103,"en-GB");
 //        pm.PrintProductReport(102);
 //        Comparator<Product> ratingSorter = (p1, p2) -> p2.getRating().ordinal() - p1.getRating().ordinal();
 //        Comparator<Product> priceSorter = (p1, p2) -> p1.getPrice().compareTo(p2.getPrice());
