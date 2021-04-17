@@ -1,9 +1,7 @@
-cake, price:$2.99, Rating ★★★★☆, Best before : 9/19/19
+cake, price:2,99 ¤, Rating ★★★★☆, Best before : 19.09.19
 Review: ★★★★★	This is the best one I ever had
 Review: ★★★★☆	I like it
 Review: ★★★★☆	good choise
 Review: ★★★★☆	Yet another review
-Review: ★★★★☆	Yet another review
 Review: ★★★☆☆	could have been better
 Review: ★★☆☆☆	Very small expected more
-ion: ★★☆☆☆  t Very small expected more
