@@ -1,6 +1,0 @@
-cake, price:£2.99, Rating ★★★☆☆, Best before : 19/09/2019
-Review: ★★★★★	Very generous amount
-Review: ★★★★★	I like it
-Review: ★★★★★	good with coffe
-Review: ★★★★☆	nice product
-Review: ★★☆☆☆	I did not like the taste

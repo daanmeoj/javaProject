@@ -33,7 +33,7 @@ public final class Drink extends Product {
     public BigDecimal getDiscount() {
         LocalTime now=LocalTime.now();
         
-        return (now.isAfter(LocalTime.of(17, 30)) && 
+        return (now.isAfter(LocalTime.of(7, 30)) && 
                 now.isBefore(LocalTime.of(22, 30)))
                 ?super.getDiscount():BigDecimal.ZERO; //To change body of generated methods, choose Tools | Templates.
     }
